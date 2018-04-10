@@ -35,6 +35,7 @@ baudrate value on which the TV has been set (see TV configuration section)
 Please refer to the serial library documentation.
 
 To send a command to the tv:
+
 .. code-block:: python
 
     gat.executeCmd(command, parameter)
@@ -45,6 +46,7 @@ On the protocol.py file several commands are already configured and can be
 send directly to the gateway. For example to mute the TV:
 
 .. code-block:: python
+
     gat.executeCommand(MutedCommand(MutedState.ON))
 
 Please review the protocol.py file for a complete list of implemented commands.
