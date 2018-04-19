@@ -47,16 +47,20 @@ class ParameterCommand(KuroCommand):
         else:
             self.response = None
 
+class OsdState(Enum):
+    NONE = None
+    OFF = "00"
+    ON = "01"
 
-class EnableOSDCommand(KuroCommand):
+class OsdCommand(ParameterCommand):
 
-    def __init__(self):
-        super().__init__("OSD", "01")
+    def __init__(self, osd_state = OsdState.NONE):
+        super().__init__("OSD", osd_state.value)
 
-class DisableOSDCommand(KuroCommand):
+    def process_response(self, response):
+        super().process_response(response)
+        self.is_osd_on = OsdState(self.response) == OsdState.ON 
 
-    def __init__(self):
-        super().__init__("OSD", "00")
 
 class TurnOnCommand(KuroCommand):
 
@@ -73,8 +77,8 @@ class VolCommand(KuroCommand):
     def __init__(self, volume = None):
         if volume == None:
             n_param = None
-        # elif "UPn" in param or "Dwn" in param:
-        #     n_param = param
+        elif "UP" in volume or "DW" in volume:
+            n_param = volume
         else:
             n_param = str(volume).zfill(3)
         super().__init__("VOL", n_param)
@@ -84,7 +88,31 @@ class VolCommand(KuroCommand):
         if self.response_type == ResponseType.SUCCESS:
             self.volume = int(response_str[-3:])
         else:
-            self.response = None       
+            self.response = None   
+
+class MutedState(Enum):
+    NONE = None
+    OFF = "00"
+    ON = "01"
+
+class MutedCommand(ParameterCommand):
+
+    def __init__(self, muted_state = MutedState.NONE):
+        super().__init__("AMT", muted_state.value)
+
+    def process_response(self, response):
+        super().process_response(response)
+        self.is_muted = MutedState(self.response)    
+
+class ChannelDirection(Enum):
+    FORWARD = "FWD"
+    REVERSE = "REV"
+
+class ChangeChannelCommand(ParameterCommand):
+
+    def __init__(self, channel_direction):
+        super().__init__("CHN", channel_direction.value) 
+
 
 class InputType(Enum):
     NONE = None
@@ -94,54 +122,62 @@ class InputType(Enum):
     INPUT_4 = "04"
     INPUT_5 = "05"
     PC = "06"
+    ANALOG = "81"
+    TERRESTRIAL = "82"
+    DIGITAL = "84"
+    HOME_MEDIA_GALLERY = "88"
 
 class TunerType(Enum):
     NONE = None
-    ANALOG = "81"
-    TERRESTRIAL = "82"
-    DIGITAL = "83"
+    ANALOG = "INA"
+    TERRESTRIAL = "INC"
+    DIGITAL = "IND"
+    HOME_MEDIA_GALLERY = "INH"
 
-class MutedState(Enum):
-    NONE = None
-    OFF = "00"
-    ON = "01"
+tuner_sub_input = {
+    InputType.ANALOG : TunerType.ANALOG,
+    InputType.TERRESTRIAL : TunerType.TERRESTRIAL,
+    InputType.DIGITAL : TunerType.DIGITAL,
+    InputType.HOME_MEDIA_GALLERY : TunerType.HOME_MEDIA_GALLERY,
+
+}
 
 
-class MutedCommand(ParameterCommand):
-
-    def __init__(self, muted_state = MutedState.NONE):
-        super().__init__("AMT", muted_state.value)
-
-    def process_response(self, response):
-        super().process_response(response)
-        self.is_muted = MutedState(self.response)
 
 class InputCommand(ParameterCommand):
 #TODO: manage XXX
-    def __init__(self, inputType = TunerType.NONE):
-        super().__init__("INP", inputType.value)
+    def __init__(self, inputType = InputType.NONE, channel = None):
+        if inputType in tuner_sub_input.keys():
+            if inputType == InputType.TERRESTRIAL:
+                super().__init__(tuner_sub_input[inputType], channel)
+            else:
+                super().__init__(tuner_sub_input[inputType])
+        else:
+            super().__init__("INP", inputType.value)
     
     def process_response(self, response):
         super().process_response(response)
-        if self.response == "81" or self.response == "82" or self.response == "83":
-            self.input_type = InputType.NONE
-            self.tuner_type = TunerType(self.response)
-        else:
-            self.input_type = InputType(self.response)
-            self.tuner_type = TunerType.NONE
+        self.input_type = InputType(self.response)
 
-#este es el cambio de canal. revisar
-class ChangeTunerCommand(KuroCommand):
-    def __init__(self, tunerType = TunerType.NONE):
-        if tunerType != TunerType.NONE:
-            n_params = tunerType.value.zfill(3)
-        else:
-            n_params = None
-        super().__init__("INC", n_params)
-    
+
+class MultiScreenStatus(Enum):
+    NONE = None
+    SINGLE_WINDOW = "00"
+    MULTI_WINDOW = "01"
+    PIP_LOWER_RIGHT = "02"
+    PIP_UPPER_RIGHT = "03"
+    PIP_UPPER_LEFT = "04"
+    PIP_LOWER_LEFT = "05"
+    SWAP = "06"
+
+class MultiScreenCommand(ParameterCommand):
+
+    def __init__(self, screenMode = MultiScreenStatus.NONE):
+        super().__init__("MST", MultiScreenStatus.value)
+
     def process_response(self, response):
         super().process_response(response)
-        self.tuner_type = TunerType(response)
+        self.multi_screen_status = MultiScreenStatus(self.response)
 
 #CHN RMC
 class AVSType(Enum):
@@ -170,16 +206,16 @@ class AVSCommand(ParameterCommand):
 
 class ScreenMode(Enum):
     NONE = None
-    DOTbyDOT = "01"
-    FOUR_THIRD = "02"
-    FULL = "03"
-    ZOOM = "04"
-    CINEMA = "05"
-    WIDE = "06"
-    FULL_14_9 = "07"
-    CINEMA_14_9= "08"
-    AUTO = "09"
-    WIDE2 = "10"
+    DOTbyDOT = "00"
+    FOUR_THIRD = "01"
+    FULL = "02"
+    ZOOM = "03"
+    #CINEMA = "04"
+    WIDE = "05"
+    #FULL_14_9 = "07"
+    #CINEMA_14_9= "08"
+    AUTO = "11"
+    WIDE2 = "12"
 
 class ScreenModeCommand(ParameterCommand):
 
@@ -189,4 +225,61 @@ class ScreenModeCommand(ParameterCommand):
     def process_response(self, response):
         super().process_response(response)
         self.screenMode = ScreenMode(self.response)
-        
+
+
+class RemoteCommandType(Enum):
+    R_0 = "00"
+    R_1 = "01"
+    R_2 = "02"
+    R_3 = "03"
+    R_4 = "04"
+    R_5 = "05"
+    R_6 = "06"
+    R_7 = "07"
+    R_0 = "08"
+    R_0 = "09"
+    RIGHT = "10"
+    LEFT = "11"
+    UP = "12"
+    DOWN = "13"
+    ENTER = "14"
+    RED = "15"
+    GREEN = "16"
+    YELLOW = "17"
+    BLUE = "18"
+    HOME_MENU = "25"
+    DOT = "38"
+    CHANNEL_ENTER = "39"
+    CHANNEL_RETURN = "40"
+    DISPLAY = "41"
+    RETURN = "42"
+    STOP = "49"
+    PLAY = "50"
+    PAUSE = "51"
+    FF = "52"
+    REW = "53"
+    HDMI_CTRL = "54"
+    TOOLS = "55"
+    EXIT = "56"
+
+class RemoteCommand(ParameterCommand):
+
+    def __init__(self, remote_command):
+        super().__init__("RMC", remote_command.value)
+
+    def process_response(self, response):
+        super().process_response(response)
+
+class PictureOffStatus(Enum):
+    NONE = None
+    OFF = "00"
+    ON = "01"
+
+class PictureOffCommand(ParameterCommand):
+
+    def __init__(self, picture_off_status = PictureOffStatus.NONE):
+        super().__init__("VMT", picture_off_status.value)
+
+    def process_response(self, response):
+        super().process_response(response)
+        self.is_muted = PictureOffStatus(self.response)

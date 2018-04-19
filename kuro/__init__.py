@@ -100,12 +100,36 @@ class Gateway():
         command = KuroCommand(cmd, param)
         self.executeCommand(command)
 
+    def set_volume(self, volume):
+        #volume 0..1
+        command = VolCommand(volume)
+        self.executeCommand(command)
+
+    def turn_on(self):
+        command = TurnOnCommand()
+        self.executeCommand(command)
+    
+    def turn_off(self):
+        command = TurnOffCommand()
+        self.executeCommand(command)
+
+    def volume_up(self):
+        command = TurnOffCommand()
+        self.executeCommand(command)
+    
+    def volume_down(self):
+        command = TurnOffCommand()
+        self.executeCommand(command)
+
+
  
 
 if __name__ == '__main__':
     #print (singlemask(2).decode('utf-8'))
 
     #manual = MethodCall("selve.GW.iveo.getIDs",[])
-    gat = Gateway('rfc2217://192.168.1.20:7000')
+    gat = Gateway('')
     gat.executeCommand(MutedCommand(MutedState.ON))
-    #gat.executeCommand(KuroCommand('AMT'))
+
+
+
