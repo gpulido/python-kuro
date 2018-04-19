@@ -1,5 +1,8 @@
 Python control of Pioneer Kuro TV through RS232 
 ======================================================
+
+|PyPI version|
+
 A simple Python API for controlling Pioneer Kuro TV's using an rs232 serial port.
 
 Supported hardware:  PDP-LX5090/5090H/6090/6090H and KRP-500A/600A series
@@ -50,6 +53,9 @@ send directly to the gateway. For example to mute the TV:
     gat.executeCommand(MutedCommand(MutedState.ON))
 
 Please review the protocol.py file for a complete list of implemented commands.
+
+.. |PyPI version| image:: https://badge.fury.io/py/python-kuro.svg
+   :target: https://badge.fury.io/py/python-kuro
 
 
 
