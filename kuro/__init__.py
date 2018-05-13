@@ -110,26 +110,71 @@ class Gateway():
         self.executeCommand(command)
     
     def turn_off(self):
-        command = TurnOffCommand()
+        command = VolCommand()
         self.executeCommand(command)
 
     def volume_up(self):
-        command = TurnOffCommand()
+        command = VolCommand("UP1")
         self.executeCommand(command)
     
     def volume_down(self):
-        command = TurnOffCommand()
+        command = VolCommand("DW1")
         self.executeCommand(command)
+    
+    def volume_mute(self, mute):
+        if mute:
+            command = MutedCommand(MutedState.ON)
+        else:
+            command = MutedCommand(MutedState.OFF)
+        self.executeCommand(command)
+    
+    def osd_state_on(self):
+        osdCommand = OsdCommand(OsdState.ON)
+        self.executeCommand(osdCommand)
+    
+    def osd_state_off(self):
+        osdCommand = OsdCommand(OsdState.OFF)
+        self.executeCommand(osdCommand)
 
+    def get_volume_info(self):
+        osdCommand = OsdCommand(OsdState.OFF)
+        self.executeCommand(osdCommand)
+        command = VolCommand()
+        self.executeCommand(command)
+        command2 = MutedCommand()
+        self.executeCommand(command2)
+        osdCommand2 = OsdCommand(OsdState.ON)
+        self.executeCommand(osdCommand2)
+        return {'volume' : command.volume, 
+                'mute' : command2.is_muted, 
+                'minVolume' : 0, 
+                'maxVolume' : 60}
+    
+    def get_power_status(self):
+        osdCommand = OsdCommand(OsdState.OFF)
+        self.executeCommand(osdCommand)
+        command = InputCommand()
+        self.executeCommand(command)
+        osdCommand2 = OsdCommand(OsdState.ON)
+        self.executeCommand(osdCommand2)
+        if command.response_type == ResponseType.SUCCESS:
+            return 'off'
+        elif command.response_type != ResponseType.ERROR:
+            return 'on'
 
- 
 
 if __name__ == '__main__':
     #print (singlemask(2).decode('utf-8'))
 
     #manual = MethodCall("selve.GW.iveo.getIDs",[])
-    gat = Gateway('')
-    gat.executeCommand(MutedCommand(MutedState.ON))
+    gat = Gateway('rfc2217://192.168.1.20:7000')
+    power_status = gat.get_power_status()
+    print(power_status)
+    gat.turn_on()
+    vol_status = gat.get_volume_info()
+    print(vol_status)
+    #gat = Gateway('')
+    #gat.executeCommand(MutedCommand(MutedState.ON))
 
 
 

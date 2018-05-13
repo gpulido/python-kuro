@@ -23,6 +23,7 @@ class KuroCommand():
             return (STX + '**'+ self.cmd + self.params + ETX).encode('utf8')
     
     def process_response(self, response_str):
+        print("kurocommand" + response_str)
         if "ERR" in response_str:
             self.response_type = ResponseType.ERROR
         elif "XXX" in response_str:
@@ -40,12 +41,16 @@ class ParameterCommand(KuroCommand):
 
     def process_response(self, response_str):
         super().process_response(response_str)
-        if self.response_type == ResponseType.NOT_PROCESSED:
+        print(self.response_type)
+        if self.response_type == ResponseType.SUCCESS:
+            print("SUCCESS")
             self.response = self.params
-        elif self.response_type == ResponseType.SUCCESS:
-            self.response = response_str[-2:]
+        elif self.response_type == ResponseType.NOT_PROCESSED:
+            print("not processed")
+            self.response = response_str[-1:]
         else:
             self.response = None
+        print("response" + self.response)
 
 class OsdState(Enum):
     NONE = None
@@ -59,6 +64,7 @@ class OsdCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
+        print("osdCommand " +self.response)
         self.is_osd_on = OsdState(self.response) == OsdState.ON 
 
 
@@ -85,7 +91,7 @@ class VolCommand(KuroCommand):
     
     def process_response(self, response_str):
         super().process_response(response_str)
-        if self.response_type == ResponseType.SUCCESS:
+        if self.response_type == ResponseType.SUCCESS and self.params == None:
             self.volume = int(response_str[-3:])
         else:
             self.response = None   
@@ -236,8 +242,8 @@ class RemoteCommandType(Enum):
     R_5 = "05"
     R_6 = "06"
     R_7 = "07"
-    R_0 = "08"
-    R_0 = "09"
+    R_8 = "08"
+    R_9 = "09"
     RIGHT = "10"
     LEFT = "11"
     UP = "12"
