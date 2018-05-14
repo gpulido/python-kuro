@@ -128,6 +128,13 @@ class Gateway():
             command = MutedCommand(MutedState.OFF)
         self.executeCommand(command)
     
+    def picture_mute(self, mute):
+        if mute:
+            command = PictureOffCommand(PictureOffStatus.ON)
+        else:
+            command = PictureOffCommand(PictureOffStatus.OFF)
+        self.executeCommand(command)
+    
     def osd_state_on(self):
         osdCommand = OsdCommand(OsdState.ON)
         self.executeCommand(osdCommand)

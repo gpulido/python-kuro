@@ -23,6 +23,10 @@ def action(args):
         gat.volume_mute(True)
     elif args.command == 'muteoff':
         gat.volume_mute(False)
+    elif args.command == 'picturemuteon':
+        gat.picture_mute(True)
+    elif args.command == 'picturemuteoff':
+        gat.picture_mute(False)
 
 def executeCommand(args):
     gat = kuro.Gateway(args.port)
@@ -34,7 +38,7 @@ parser.add_argument("port", type=str, help="serial port")
 subparsers = parser.add_subparsers(help='sub-command help')
 
 parser_action = subparsers.add_parser('action', help="Command to execute over the tv")
-parser_action.add_argument("command", choices = ['on', 'off', 'volup', 'voldown', 'muteon','muteoff','osdon', 'osdoff'], default = 'on')
+parser_action.add_argument("command", choices = ['on', 'off', 'volup', 'voldown', 'muteon','muteoff','osdon', 'osdoff','picturemuteon', 'picturemuteoff'], default = 'on')
 parser_action.set_defaults(func=action)
 
 parser_command = subparsers.add_parser('command', help="Command to execute over the device")

@@ -43,13 +43,13 @@ class ParameterCommand(KuroCommand):
         super().process_response(response_str)
         print(self.response_type)
         if self.response_type == ResponseType.SUCCESS:
-            print("SUCCESS")
             self.response = self.params
         elif self.response_type == ResponseType.NOT_PROCESSED:
-            print("not processed")
-            self.response = response_str[-1:]
+            idx = response_str.find(self.cmd) + len(self.cmd)
+            self.response = response_str[idx:idx + 3]
         else:
             self.response = None
+        logging.debug("response" + self.response)
         print("response" + self.response)
 
 class OsdState(Enum):
@@ -64,8 +64,7 @@ class OsdCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        print("osdCommand " +self.response)
-        self.is_osd_on = OsdState(self.response) == OsdState.ON 
+        self.is_osd_on = OsdState(self.response[1:]) == OsdState.ON 
 
 
 class TurnOnCommand(KuroCommand):
@@ -108,7 +107,7 @@ class MutedCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.is_muted = MutedState(self.response)    
+        self.is_muted = MutedState(self.response[1:])    
 
 class ChannelDirection(Enum):
     FORWARD = "FWD"
@@ -163,7 +162,7 @@ class InputCommand(ParameterCommand):
     
     def process_response(self, response):
         super().process_response(response)
-        self.input_type = InputType(self.response)
+        self.input_type = InputType(self.response[1:])
 
 
 class MultiScreenStatus(Enum):
@@ -183,7 +182,7 @@ class MultiScreenCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.multi_screen_status = MultiScreenStatus(self.response)
+        self.multi_screen_status = MultiScreenStatus(self.response[1:])
 
 #CHN RMC
 class AVSType(Enum):
@@ -207,7 +206,7 @@ class AVSCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.avsType = AVSType(self.response)
+        self.avsType = AVSType(self.response[1:])
 
 
 class ScreenMode(Enum):
@@ -230,7 +229,7 @@ class ScreenModeCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.screenMode = ScreenMode(self.response)
+        self.screenMode = ScreenMode(self.response[1:])
 
 
 class RemoteCommandType(Enum):
@@ -274,7 +273,7 @@ class RemoteCommand(ParameterCommand):
         super().__init__("RMC", remote_command.value)
 
     def process_response(self, response):
-        super().process_response(response)
+        super().process_response(response[1:])
 
 class PictureOffStatus(Enum):
     NONE = None
@@ -288,4 +287,4 @@ class PictureOffCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.is_muted = PictureOffStatus(self.response)
+        self.is_muted = PictureOffStatus(self.response[1:])
