@@ -49,8 +49,8 @@ class ParameterCommand(KuroCommand):
             self.response = response_str[idx:idx + 3]
         else:
             self.response = None
-        logging.debug("response" + self.response)
-        print("response" + self.response)
+        logging.debug("response" + str(self.response))
+        print("response" + str(self.response))
 
 class OsdState(Enum):
     NONE = None
@@ -90,7 +90,7 @@ class VolCommand(KuroCommand):
     
     def process_response(self, response_str):
         super().process_response(response_str)
-        if self.response_type == ResponseType.SUCCESS and self.params == None:
+        if self.response_type == ResponseType.NOT_PROCESSED and self.params == None:
             self.volume = int(response_str[-3:])
         else:
             self.response = None   
@@ -107,7 +107,8 @@ class MutedCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.is_muted = MutedState(self.response[1:])    
+        if self.response_type == ResponseType.NOT_PROCESSED and self.params == None:
+            self.is_muted = MutedState(self.response[1:])    
 
 class ChannelDirection(Enum):
     FORWARD = "FWD"
@@ -129,7 +130,7 @@ class InputType(Enum):
     PC = "06"
     ANALOG = "81"
     TERRESTRIAL = "82"
-    DIGITAL = "84"
+    DIGITAL = "83"
     HOME_MEDIA_GALLERY = "88"
 
 class TunerType(Enum):
@@ -162,7 +163,10 @@ class InputCommand(ParameterCommand):
     
     def process_response(self, response):
         super().process_response(response)
-        self.input_type = InputType(self.response[1:])
+        if self.response_type == ResponseType.SUCCESS and self.params == None:
+            self.input_type = InputType.NONE
+        else:
+            self.input_type = InputType(self.response[1:])
 
 
 class MultiScreenStatus(Enum):
@@ -287,4 +291,7 @@ class PictureOffCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.is_muted = PictureOffStatus(self.response[1:])
+        if self.response_type == ResponseType.SUCCESS and self.params == None:
+            self.input_type = PictureOffStatus.NONE
+        else:
+            self.is_muted = PictureOffStatus(self.response[1:])

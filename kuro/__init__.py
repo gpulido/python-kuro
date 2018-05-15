@@ -75,7 +75,7 @@ class Gateway():
                 self.ser.flushOutput()
                 
                 self.ser.write(commandstr)
-                time.sleep(0.5)
+                time.sleep(0.3)
                 response_str = "" 
                 while True:
                     response = self.ser.readall()
@@ -110,7 +110,7 @@ class Gateway():
         self.executeCommand(command)
     
     def turn_off(self):
-        command = VolCommand()
+        command = TurnOffCommand()
         self.executeCommand(command)
 
     def volume_up(self):
@@ -144,26 +144,18 @@ class Gateway():
         self.executeCommand(osdCommand)
 
     def get_volume_info(self):
-        osdCommand = OsdCommand(OsdState.OFF)
-        self.executeCommand(osdCommand)
         command = VolCommand()
         self.executeCommand(command)
         command2 = MutedCommand()
         self.executeCommand(command2)
-        osdCommand2 = OsdCommand(OsdState.ON)
-        self.executeCommand(osdCommand2)
-        return {'volume' : command.volume, 
-                'mute' : command2.is_muted, 
+        return {'volume' : command.volume if hasattr(command, "volume") else None, 
+                'mute' : command2.is_muted if hasattr(command2,"is_muted") else None, 
                 'minVolume' : 0, 
                 'maxVolume' : 60}
     
     def get_power_status(self):
-        osdCommand = OsdCommand(OsdState.OFF)
-        self.executeCommand(osdCommand)
-        command = InputCommand()
+        command = PictureOffCommand()
         self.executeCommand(command)
-        osdCommand2 = OsdCommand(OsdState.ON)
-        self.executeCommand(osdCommand2)
         if command.response_type == ResponseType.SUCCESS:
             return 'off'
         elif command.response_type != ResponseType.ERROR:
