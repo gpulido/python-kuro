@@ -91,9 +91,11 @@ class VolCommand(KuroCommand):
     def process_response(self, response_str):
         super().process_response(response_str)
         if self.response_type == ResponseType.NOT_PROCESSED and self.params == None:
-            self.volume = int(response_str[-3:])
+            idx = response_str.find(self.cmd) + len(self.cmd)
+            response = response_str[idx:idx + 3]
+            self.volume = int(response)
         else:
-            self.response = None   
+            self.valume = None   
 
 class MutedState(Enum):
     NONE = None
@@ -132,6 +134,9 @@ class InputType(Enum):
     TERRESTRIAL = "82"
     DIGITAL = "83"
     HOME_MEDIA_GALLERY = "88"
+    
+    def describe(self):
+        return str(self.name).replace( "_"," ").title()
 
 class TunerType(Enum):
     NONE = None
@@ -205,12 +210,15 @@ class AVSType(Enum):
 
 class AVSCommand(ParameterCommand):
 
-    def __init__(self, screenMode = AVSType.NONE):
-        super().__init__("AVS", AVSType.value)
+    def __init__(self, avsType = AVSType.NONE):
+        super().__init__("AVS", avsType.value)
 
     def process_response(self, response):
         super().process_response(response)
-        self.avsType = AVSType(self.response[1:])
+        if self.response_type == ResponseType.SUCCESS and self.params == None:
+            self.avsType = AVSType.NONE
+        else:
+            self.avsType = AVSType(self.response[1:])
 
 
 class ScreenMode(Enum):
@@ -233,7 +241,10 @@ class ScreenModeCommand(ParameterCommand):
 
     def process_response(self, response):
         super().process_response(response)
-        self.screenMode = ScreenMode(self.response[1:])
+        if self.response_type == ResponseType.SUCCESS and self.params == None:
+            self.screenMode = ScreenMode.NONE
+        else:
+            self.screenMode = ScreenMode(self.response[1:])
 
 
 class RemoteCommandType(Enum):

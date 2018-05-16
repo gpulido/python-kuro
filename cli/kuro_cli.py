@@ -28,7 +28,7 @@ def action(args):
     elif args.command == 'picturemuteoff':
         gat.picture_mute(False)
     else:
-        print(gat.get_power_status())
+        print(gat.get_volume_info())
 
 def executeCommand(args):
     gat = kuro.Gateway(args.port)

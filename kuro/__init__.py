@@ -128,7 +128,7 @@ class Gateway():
             command = MutedCommand(MutedState.OFF)
         self.executeCommand(command)
     
-    def picture_mute(self, mute):
+    def video_mute(self, mute):
         if mute:
             command = PictureOffCommand(PictureOffStatus.ON)
         else:
@@ -144,15 +144,17 @@ class Gateway():
         self.executeCommand(osdCommand)
 
     def get_volume_info(self):
+        self.executeCommand(OsdCommand(OsdState.OFF))
         command = VolCommand()
         self.executeCommand(command)
         command2 = MutedCommand()
         self.executeCommand(command2)
+        self.executeCommand(OsdCommand(OsdState.ON))
         return {'volume' : command.volume if hasattr(command, "volume") else None, 
                 'mute' : command2.is_muted if hasattr(command2,"is_muted") else None, 
                 'minVolume' : 0, 
                 'maxVolume' : 60}
-    
+        
     def get_power_status(self):
         command = PictureOffCommand()
         self.executeCommand(command)
@@ -160,7 +162,24 @@ class Gateway():
             return 'off'
         elif command.response_type != ResponseType.ERROR:
             return 'on'
+    
+    def get_input_list(self):
+        return [(member.describe(),member) for member in InputType]
 
+    def get_status(self):
+        self.executeCommand(OsdCommand(OsdState.OFF))
+        inputCommand = InputCommand()
+        self.executeCommand(inputCommand)
+        avsCommand = AVSCommand()
+        self.executeCommand(avsCommand)
+        screenModecommand = ScreenModeCommand()
+        self.executeCommand(screenModecommand)
+        self.executeCommand(OsdCommand(OsdState.ON))
+        
+        return {'input' : inputCommand.input_type if hasattr(inputCommand, "input_type") else None,
+                'avs' :  avsCommand.avsType if hasattr(avsCommand, "avsType") else None,
+                'screenMode' : screenModecommand.screenMode if hasattr(screenModecommand, "screenMode") else None}
+                
 
 if __name__ == '__main__':
     #print (singlemask(2).decode('utf-8'))
