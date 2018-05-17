@@ -20,25 +20,30 @@ class Gateway():
         """
         self.port = port
         self.baudrate = baudrate
-
+        self.configserial()
     
     def configserial(self):
         """
         Configure the serial port
         """
-        if '://' in self.port:
-            self.ser = serial.serial_for_url(self.port)
-        else:
-            self.ser = serial.Serial(self.port)
-            
-        self.ser.baudrate = self.baudrate
-        self.ser.parity = serial.PARITY_NONE
-        self.ser.stopbits=serial.STOPBITS_ONE
-        self.ser.bytesize=serial.EIGHTBITS
-        self.ser.timeout = 0
-        self.ser.xonxoff = False
-        self.ser.rtscts = False
-        self.ser.dsrdtr = False
+        try:
+            if '://' in self.port:
+                self.ser = serial.serial_for_url(self.port)
+            else:
+                self.ser = serial.Serial(self.port)
+                
+            self.ser.baudrate = self.baudrate
+            self.ser.parity = serial.PARITY_NONE
+            self.ser.stopbits=serial.STOPBITS_ONE
+            self.ser.bytesize=serial.EIGHTBITS
+            self.ser.timeout = 0
+            self.ser.xonxoff = False
+            self.ser.rtscts = False
+            self.ser.dsrdtr = False
+
+        except Exception as e:            
+            logging.error ('error open serial port: ' + str(e))
+            exit()
 
             
     def executeCommand(self, command):
@@ -62,37 +67,40 @@ class Gateway():
         logging.info('Gateway writting: ' + str(commandstr))
         print('Gateway writting: ' + str(commandstr))
 
-        try:
+        # try:
+        #     self.configserial()
+
+        # except Exception as e:            
+        #     logging.error ('error open serial port: ' + str(e))
+        #     exit()
+        
+        if self.ser == None or not self.ser.isOpen():
             self.configserial()
 
-        except Exception as e:            
-            logging.error ('error open serial port: ' + str(e))
-            exit()
-        
-        if self.ser.isOpen():
-            try:
-                self.ser.flushInput()
-                self.ser.flushOutput()
+        try:
+            self.ser.flushInput()
+            self.ser.flushOutput()
+            
+            self.ser.write(commandstr)
+            time.sleep(0.3)
+            response_str = "" 
+            while True:
+                response = self.ser.readall()
+                response_str += str(response.decode())
+                #print(response_str)
+                logging.info('read data: ' + response_str)
+                if (response.decode()== ''):
+                    break
                 
-                self.ser.write(commandstr)
-                time.sleep(0.3)
-                response_str = "" 
-                while True:
-                    response = self.ser.readall()
-                    response_str += str(response.decode())
-                    #print(response_str)
-                    logging.info('read data: ' + response_str)
-                    if (response.decode()== ''):
-                        break
-                    
-                self.ser.close()
-                print(response_str)
-                command.process_response(response_str)
-                #return process_response(response_str)
-            except Exception as e1:
-                logging.exception ("error communicating...: " + str(e1))
-        else:
-            logging.error ("cannot open serial port")
+            #self.ser.close()
+            self.ser.flushOutput()
+            print(response_str)
+            command.process_response(response_str)
+            #return process_response(response_str)
+        except Exception as e1:
+            logging.exception ("error communicating...: " + str(e1))
+        # else:
+        #     logging.error ("cannot open serial port")
         
         return None
     
