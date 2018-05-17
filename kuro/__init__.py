@@ -43,7 +43,7 @@ class Gateway():
 
         except Exception as e:            
             logging.error ('error open serial port: ' + str(e))
-            exit()
+            #exit()
 
             
     def executeCommand(self, command):
