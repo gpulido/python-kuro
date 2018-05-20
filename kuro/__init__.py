@@ -28,18 +28,29 @@ class Gateway():
         """
         try:
             if '://' in self.port:
-                self.ser = serial.serial_for_url(self.port)
+                self.ser = serial.serial_for_url(self.port, do_not_open = True)
+                self.ser.baudrate = self.baudrate
+                self.ser.parity = serial.PARITY_NONE
+                self.ser.stopbits=serial.STOPBITS_ONE
+                self.ser.bytesize=serial.EIGHTBITS
+                self.ser.timeout = 0
+                self.ser.xonxoff = False
+                self.ser.rtscts = False
+                self.ser.dsrdtr = False
+                self.ser.open()
+
             else:
-                self.ser = serial.Serial(self.port)
+                self.ser = serial.Serial(self.port, 
+                                self.baudrate, 
+                                bytesize = serial.EIGHTBITS, 
+                                timeout = 0, 
+                                parity = serial.PARITY_NONE,
+                                stopbits = serial.STOPBITS_ONE,
+                                xonxoff = False,
+                                rtscts = False,
+                                dsrdtr = False)
                 
-            self.ser.baudrate = self.baudrate
-            self.ser.parity = serial.PARITY_NONE
-            self.ser.stopbits=serial.STOPBITS_ONE
-            self.ser.bytesize=serial.EIGHTBITS
-            self.ser.timeout = 0
-            self.ser.xonxoff = False
-            self.ser.rtscts = False
-            self.ser.dsrdtr = False
+
 
         except Exception as e:            
             logging.error ('error open serial port: ' + str(e))
@@ -65,7 +76,6 @@ class Gateway():
         """
         commandstr = command.serialize()
         logging.info('Gateway writting: ' + str(commandstr))
-        print('Gateway writting: ' + str(commandstr))
 
         # try:
         #     self.configserial()
@@ -74,12 +84,12 @@ class Gateway():
         #     logging.error ('error open serial port: ' + str(e))
         #     exit()
         
-        if self.ser == None or not self.ser.isOpen():
-            self.configserial()
+        # if hassatt() self.ser == None or not self.ser.isOpen():
+        #     self.configserial()
 
         try:
-            self.ser.flushInput()
-            self.ser.flushOutput()
+            #self.ser.flushInput()
+            #self.ser.flushOutput()
             
             self.ser.write(commandstr)
             time.sleep(0.3)
@@ -88,15 +98,14 @@ class Gateway():
                 response = self.ser.readall()
                 response_str += str(response.decode())
                 #print(response_str)
-                logging.info('read data: ' + response_str)
+                #logging.info('read data: ' + response_str)
                 if (response.decode()== ''):
                     break
                 
             #self.ser.close()
-            self.ser.flushOutput()
-            print(response_str)
+            #self.ser.flushOutput()
+            logging.debug(response_str)
             command.process_response(response_str)
-            #return process_response(response_str)
         except Exception as e1:
             logging.exception ("error communicating...: " + str(e1))
         # else:
@@ -116,7 +125,7 @@ class Gateway():
     def turn_on(self):
         command = TurnOnCommand()
         self.executeCommand(command)
-    
+
     def turn_off(self):
         command = TurnOffCommand()
         self.executeCommand(command)
@@ -164,12 +173,15 @@ class Gateway():
                 'maxVolume' : 60}
         
     def get_power_status(self):
+        self.configserial()
         command = PictureOffCommand()
         self.executeCommand(command)
+        self.ser.close()
         if command.response_type == ResponseType.SUCCESS:
             return 'off'
         elif command.response_type != ResponseType.ERROR:
             return 'on'
+
     
     def get_input_list(self):
         return [(member.describe(),member) for member in InputType]
