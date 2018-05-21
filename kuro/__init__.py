@@ -4,6 +4,8 @@ import time
 import serial
 from enum import Enum
 import logging
+import threading
+from threading import Thread
 
 from kuro.protocol import *
 
@@ -20,8 +22,22 @@ class Gateway():
         """
         self.port = port
         self.baudrate = baudrate
-        self.configserial()
+        self.lock = threading.Lock()
+        self.status = 'off'
+        self.init_refresh()
+       
+
+        #self.configserial()
     
+    def init_refresh(self):
+        self.refresh = True
+        self.thread = Thread(target = self.refresh_power_status)
+        self.thread.start()
+        self.thread.join()
+    
+    def stop_refresh(self):
+        self.refresh = False
+
     def configserial(self):
         """
         Configure the serial port
@@ -38,7 +54,7 @@ class Gateway():
                 self.ser.rtscts = False
                 self.ser.dsrdtr = False
                 self.ser.open()
-
+                logging.debug("Opened serial port")
             else:
                 self.ser = serial.Serial(self.port, 
                                 self.baudrate, 
@@ -84,21 +100,18 @@ class Gateway():
         #     logging.error ('error open serial port: ' + str(e))
         #     exit()
         
-        # if hassatt() self.ser == None or not self.ser.isOpen():
-        #     self.configserial()
+        if not hasattr(self, "ser") or self.ser == None or not self.ser.isOpen():
+            self.configserial()
 
         try:
-            #self.ser.flushInput()
-            #self.ser.flushOutput()
-            
+            self.ser.flushInput()
+            self.ser.flushOutput()
             self.ser.write(commandstr)
             time.sleep(0.3)
             response_str = "" 
             while True:
                 response = self.ser.readall()
                 response_str += str(response.decode())
-                #print(response_str)
-                #logging.info('read data: ' + response_str)
                 if (response.decode()== ''):
                     break
                 
@@ -108,8 +121,6 @@ class Gateway():
             command.process_response(response_str)
         except Exception as e1:
             logging.exception ("error communicating...: " + str(e1))
-        # else:
-        #     logging.error ("cannot open serial port")
         
         return None
     
@@ -123,12 +134,18 @@ class Gateway():
         self.executeCommand(command)
 
     def turn_on(self):
-        command = TurnOnCommand()
-        self.executeCommand(command)
+        with self.lock:
+            self.configserial()
+            command = TurnOnCommand()
+            self.executeCommand(command)
+            self.ser.close()
 
     def turn_off(self):
-        command = TurnOffCommand()
-        self.executeCommand(command)
+        with self.lock:
+            self.configserial()
+            command = TurnOffCommand()
+            self.executeCommand(command)
+            self.ser.close()
 
     def volume_up(self):
         command = VolCommand("UP1")
@@ -173,20 +190,26 @@ class Gateway():
                 'maxVolume' : 60}
         
     def get_power_status(self):
-        self.configserial()
-        command = PictureOffCommand()
-        self.executeCommand(command)
-        self.ser.close()
-        if command.response_type == ResponseType.SUCCESS:
-            return 'off'
-        elif command.response_type != ResponseType.ERROR:
-            return 'on'
+        return self.status
 
+    def refresh_power_status(self):
+        while self.refresh:
+            with self.lock:
+                self.configserial()
+                command = PictureOffCommand()
+                self.executeCommand(command)
+                self.ser.close()
+                if command.response_type == ResponseType.SUCCESS:
+                    self.status = 'off'
+                elif command.response_type != ResponseType.ERROR:
+                    self.status = 'on'
+            time.sleep(5)
     
     def get_input_list(self):
         return [(member.describe(),member) for member in InputType]
 
     def get_status(self):
+        
         self.executeCommand(OsdCommand(OsdState.OFF))
         inputCommand = InputCommand()
         self.executeCommand(inputCommand)
@@ -206,11 +229,11 @@ if __name__ == '__main__':
 
     #manual = MethodCall("selve.GW.iveo.getIDs",[])
     gat = Gateway('rfc2217://192.168.1.20:7000')
-    power_status = gat.get_power_status()
-    print(power_status)
-    gat.turn_on()
-    vol_status = gat.get_volume_info()
-    print(vol_status)
+    # power_status = gat.get_power_status()
+    # print(power_status)
+    # gat.turn_on()
+    # vol_status = gat.get_volume_info()
+    # print(vol_status)
     #gat = Gateway('')
     #gat.executeCommand(MutedCommand(MutedState.ON))
 
