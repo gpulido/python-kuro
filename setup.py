@@ -15,7 +15,7 @@ with open(path.join(here, 'README.rst'), encoding='utf-8') as f:
 setup(
     
     name='python-kuro',  # Required    
-    version='0.0.11',  # Required  
+    version='0.0.16',  # Required  
     description='Python library for interfacing with Pioneer Kuro TV using the serial port',  # Required   
     long_description=long_description,  # Optional    
     url='https://github.com/gpulido/python-kuro',  # Optional

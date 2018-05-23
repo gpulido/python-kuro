@@ -23,7 +23,7 @@ class KuroCommand():
             return (STX + '**'+ self.cmd + self.params + ETX).encode('utf8')
     
     def process_response(self, response_str):
-        print("kurocommand" + response_str)
+        logging.debug("kurocommand response" + response_str)
         if "ERR" in response_str:
             self.response_type = ResponseType.ERROR
         elif "XXX" in response_str:
@@ -41,7 +41,6 @@ class ParameterCommand(KuroCommand):
 
     def process_response(self, response_str):
         super().process_response(response_str)
-        print(self.response_type)
         if self.response_type == ResponseType.SUCCESS:
             self.response = self.params
         elif self.response_type == ResponseType.NOT_PROCESSED:
@@ -50,7 +49,7 @@ class ParameterCommand(KuroCommand):
         else:
             self.response = None
         logging.debug("response" + str(self.response))
-        print("response" + str(self.response))
+
 
 class OsdState(Enum):
     NONE = None
@@ -300,9 +299,10 @@ class PictureOffCommand(ParameterCommand):
     def __init__(self, picture_off_status = PictureOffStatus.NONE):
         super().__init__("VMT", picture_off_status.value)
 
-    def process_response(self, response):
-        super().process_response(response)
-        if self.response_type == ResponseType.SUCCESS and self.params == None:
-            self.input_type = PictureOffStatus.NONE
-        else:
-            self.is_muted = PictureOffStatus(self.response[1:])
+    # def process_response(self, response):
+    #     super().process_response(response)
+    #     if (self.response_type == ResponseType.SUCCESS 
+    #     and self.params == None )  or self.response_type == ResponseType.ERROR:
+    #         self.is_muted = PictureOffStatus.NONE
+    #     else:
+    #         self.is_muted = PictureOffStatus(self.response[1:])
