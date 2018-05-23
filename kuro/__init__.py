@@ -33,7 +33,7 @@ class Gateway():
         self.refresh = True
         self.thread = Thread(target = self.refresh_power_status)
         self.thread.start()
-        self.thread.join()
+        #self.thread.join()
     
     def stop_refresh(self):
         self.refresh = False
@@ -229,6 +229,8 @@ if __name__ == '__main__':
 
     #manual = MethodCall("selve.GW.iveo.getIDs",[])
     gat = Gateway('rfc2217://192.168.1.20:7000')
+    while(True):
+        pass
     # power_status = gat.get_power_status()
     # print(power_status)
     # gat.turn_on()
