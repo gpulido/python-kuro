@@ -11,7 +11,7 @@ from kuro.protocol import *
 
 class Gateway():   
 
-    def __init__(self, port, baudrate = 9600):
+    def __init__(self, port, baudrate = 9600, refresh_time = 10):
         """                
         Arguments:
             port {String} -- Serial port string as it is used in pyserial
@@ -23,21 +23,31 @@ class Gateway():
         self.port = port
         self.baudrate = baudrate
         self.lock = threading.Lock()
+        self.serial_lock = threading.Lock()
         self.status = 'off'
-        self.init_refresh()
+        self.refresh_time = refresh_time
+        
+    
        
-
-        #self.configserial()
     
     def init_refresh(self):
         self.refresh = True
         self.thread = Thread(target = self.refresh_power_status)
         self.thread.start()
-        #self.thread.join()
+        # self.thread.join()
     
     def stop_refresh(self):
         self.refresh = False
 
+    def read_from_serial(self):
+        self.configserial()
+        self.init_refresh()
+        while (self.ser.isOpen()):
+            print ("is open")
+            if (self.ser.inWaiting() > 0):
+                data_str = self.ser.read(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
+            print(" ni idea" + data_str, end='') 
+            
     def configserial(self):
         """
         Configure the serial port
@@ -100,25 +110,28 @@ class Gateway():
         #     logging.error ('error open serial port: ' + str(e))
         #     exit()
         
-        if not hasattr(self, "ser") or self.ser == None or not self.ser.isOpen():
-            self.configserial()
+        # if not hasattr(self, "ser") or self.ser == None or not self.ser.isOpen():
+        #     self.configserial()
 
         try:
-            self.ser.flushInput()
-            self.ser.flushOutput()
-            self.ser.write(commandstr)
-            time.sleep(0.3)
-            response_str = "" 
-            while True:
-                response = self.ser.readall()
-                response_str += str(response.decode())
-                if (response.decode()== ''):
-                    break
+            if self.ser.isOpen():
+                self.ser.flushInput()
+                self.ser.flushOutput()
+                self.ser.write(commandstr)
+            #     time.sleep(0.3)
+            #     response_str = "" 
+            #     while True:
+            #         response = self.ser.readall()
+            #         response_str += str(response.decode())
+            #         if (response.decode()== ''):
+            #             break
+            # else:
+            #     response_str = "ERR"
                 
-            #self.ser.close()
-            #self.ser.flushOutput()
-            logging.debug(response_str)
-            command.process_response(response_str)
+            # #self.ser.close()
+            # #self.ser.flushOutput()
+            # logging.debug(response_str)
+            # command.process_response(response_str)
         except Exception as e1:
             logging.exception ("error communicating...: " + str(e1))
         
@@ -191,19 +204,24 @@ class Gateway():
         
     def get_power_status(self):
         return self.status
+    
+    def set_power_status(self, value):
+        if self.status != value:
+            self.status = value
 
     def refresh_power_status(self):
         while self.refresh:
-            with self.lock:
-                self.configserial()
+            with self.serial_lock:
+                # self.configserial()
                 command = PictureOffCommand()
                 self.executeCommand(command)
-                self.ser.close()
-                if command.response_type == ResponseType.SUCCESS:
-                    self.status = 'off'
-                elif command.response_type != ResponseType.ERROR:
-                    self.status = 'on'
-            time.sleep(5)
+                # self.ser.close()
+                # if command.response_type == ResponseType.SUCCESS:
+                #     self.set_power_status('off')
+                # elif command.response_type != ResponseType.ERROR:
+                #     self.set_power_status('on')
+                
+            time.sleep(self.refresh_time)
     
     def get_input_list(self):
         return [(member.describe(),member) for member in InputType]
@@ -229,8 +247,7 @@ if __name__ == '__main__':
 
     #manual = MethodCall("selve.GW.iveo.getIDs",[])
     gat = Gateway('rfc2217://192.168.1.20:7000')
-    while(True):
-        pass
+    gat.read_from_serial()
     # power_status = gat.get_power_status()
     # print(power_status)
     # gat.turn_on()
