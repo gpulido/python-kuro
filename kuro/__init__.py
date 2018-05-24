@@ -9,6 +9,8 @@ from threading import Thread
 
 from kuro.protocol import *
 
+
+
 class Gateway():   
 
     def __init__(self, port, baudrate = 9600, refresh_time = 10):
@@ -27,9 +29,6 @@ class Gateway():
         self.status = 'off'
         self.refresh_time = refresh_time
         
-    
-       
-    
     def init_refresh(self):
         self.refresh = True
         self.thread = Thread(target = self.refresh_power_status)
@@ -39,14 +38,26 @@ class Gateway():
     def stop_refresh(self):
         self.refresh = False
 
+    def init_read_from_serial(self):
+        self.serial_read_thread = Thread(target = self.read_from_serial)
+        self.serial_read_thread.start()
+        return self.serial_read_thread
+
     def read_from_serial(self):
         self.configserial()
         self.init_refresh()
         while (self.ser.isOpen()):
-            print ("is open")
-            if (self.ser.inWaiting() > 0):
-                data_str = self.ser.read(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
-            print(" ni idea" + data_str, end='') 
+            data_str = ""
+            while (self.ser.inWaiting() > 0):
+                data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
+            if not data_str == "":
+                logging.debug(data_str)
+                if "X" in data_str:
+                    self.status = "off"
+                else:
+                    self.status = "on"
+                logging.debug(self.status)
+        logging.debug("Serial closed") 
             
     def configserial(self):
         """
@@ -101,37 +112,11 @@ class Gateway():
             ErrorResponse -- if the gateway returns an error
         """
         commandstr = command.serialize()
-        logging.info('Gateway writting: ' + str(commandstr))
-
-        # try:
-        #     self.configserial()
-
-        # except Exception as e:            
-        #     logging.error ('error open serial port: ' + str(e))
-        #     exit()
-        
-        # if not hasattr(self, "ser") or self.ser == None or not self.ser.isOpen():
-        #     self.configserial()
+        logging.debug('Gateway writting: ' + str(commandstr))
 
         try:
             if self.ser.isOpen():
-                self.ser.flushInput()
-                self.ser.flushOutput()
                 self.ser.write(commandstr)
-            #     time.sleep(0.3)
-            #     response_str = "" 
-            #     while True:
-            #         response = self.ser.readall()
-            #         response_str += str(response.decode())
-            #         if (response.decode()== ''):
-            #             break
-            # else:
-            #     response_str = "ERR"
-                
-            # #self.ser.close()
-            # #self.ser.flushOutput()
-            # logging.debug(response_str)
-            # command.process_response(response_str)
         except Exception as e1:
             logging.exception ("error communicating...: " + str(e1))
         
@@ -243,18 +228,16 @@ class Gateway():
                 
 
 if __name__ == '__main__':
-    #print (singlemask(2).decode('utf-8'))
+    logFormatter = logging.Formatter("%(asctime)s [%(threadName)-12.12s] [%(levelname)-5.5s]  %(message)s")
+    rootLogger = logging.getLogger()
 
-    #manual = MethodCall("selve.GW.iveo.getIDs",[])
+    consoleHandler = logging.StreamHandler()
+    consoleHandler.setFormatter(logFormatter)
+    rootLogger.addHandler(consoleHandler)
+    rootLogger.setLevel(logging.DEBUG)
     gat = Gateway('rfc2217://192.168.1.20:7000')
-    gat.read_from_serial()
-    # power_status = gat.get_power_status()
-    # print(power_status)
-    # gat.turn_on()
-    # vol_status = gat.get_volume_info()
-    # print(vol_status)
-    #gat = Gateway('')
-    #gat.executeCommand(MutedCommand(MutedState.ON))
+    gat.init_read_from_serial().join()
+
 
 
 
