@@ -133,17 +133,17 @@ class Gateway():
 
     def turn_on(self):
         with self.lock:
-            self.configserial()
+            #self.configserial()
             command = TurnOnCommand()
             self.executeCommand(command)
-            self.ser.close()
+            #self.ser.close()
 
     def turn_off(self):
         with self.lock:
-            self.configserial()
+            #self.configserial()
             command = TurnOffCommand()
             self.executeCommand(command)
-            self.ser.close()
+            #self.ser.close()
 
     def volume_up(self):
         command = VolCommand("UP1")
