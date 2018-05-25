@@ -133,17 +133,18 @@ class Gateway():
 
     def turn_on(self):
         with self.lock:
-            #self.configserial()
             command = TurnOnCommand()
             self.executeCommand(command)
-            #self.ser.close()
 
     def turn_off(self):
         with self.lock:
-            #self.configserial()
             command = TurnOffCommand()
             self.executeCommand(command)
-            #self.ser.close()
+
+    def set_input(self, input):
+        with self.lock:
+            command = InputCommand(input)
+            self.executeCommand(command)
 
     def volume_up(self):
         command = VolCommand("UP1")
@@ -209,7 +210,8 @@ class Gateway():
             time.sleep(self.refresh_time)
     
     def get_input_list(self):
-        return [(member.describe(),member) for member in InputType]
+        return { member.describe(): member for member in InputType}
+
 
     def get_status(self):
         
@@ -236,7 +238,13 @@ if __name__ == '__main__':
     rootLogger.addHandler(consoleHandler)
     rootLogger.setLevel(logging.DEBUG)
     gat = Gateway('rfc2217://192.168.1.20:7000')
-    gat.init_read_from_serial().join()
+    content_mapping = gat.get_input_list()
+    source_list = [key for key in content_mapping]
+    print(source_list)
+    # for key in content_mapping:
+    #     source_list.append(key)
+    #gat.init_read_from_serial().join()
+
 
 
 
