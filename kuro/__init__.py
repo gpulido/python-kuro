@@ -7,7 +7,7 @@ import logging
 import threading
 from threading import Thread
 
-from protocol import *
+from .protocol import *
 
 _LOGGER = logging.getLogger(__name__)
 class Gateway():   
