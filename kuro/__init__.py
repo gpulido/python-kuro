@@ -10,7 +10,6 @@ from threading import Thread
 from .protocol import *
 
 
-
 class Gateway():   
 
     def __init__(self, port, baudrate = 9600, refresh_time = 10):
@@ -116,9 +115,9 @@ class Gateway():
             with self.lock:
                 if not self.ser or not self.ser.isOpen():
                     self.configserial()
-                
+                #time.sleep(0.5)
                 self.ser.write(commandstr)               
-                time.sleep(0.5)
+                
                 response_str = "" 
                 while True:
                     response = self.ser.readall()
