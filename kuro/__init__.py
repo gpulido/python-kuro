@@ -7,7 +7,7 @@ import logging
 import threading
 from threading import Thread
 
-from .protocol import *
+from protocol import *
 
 
 class Gateway():   
@@ -208,7 +208,7 @@ class Gateway():
 
     def refresh_power_status(self):
         while self.refresh:                        
-            response_type = self.executeCmd("VMI")
+            response_type = self.executeCmd("VMT")
             if response_type == ResponseType.SUCCESS:
                 self.set_power_status('on')
             elif response_type != ResponseType.ERROR or response_type == ResponseType.NOT_PROCESSED:
