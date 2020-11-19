@@ -209,13 +209,14 @@ class Gateway():
 
     def refresh_power_status(self):
         while self.refresh:                        
-            response_type = self.executeCmd("ACL")
+            response_type = self.executeCmd("VMI")
             if response_type == ResponseType.SUCCESS:
                 self.set_power_status('on')
             elif response_type != ResponseType.ERROR or response_type == ResponseType.NOT_PROCESSED:
                 self.set_power_status('off')
             
             time.sleep(self.refresh_time)
+
     
     def get_input_list(self):
         return { member.describe(): member for member in InputType}
