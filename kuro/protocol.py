@@ -5,6 +5,8 @@ import logging
 STX = chr(0x02)
 ETX = chr(0x03)
 
+_LOGGER = logging.getLogger(__name__)
+
 class ResponseType(Enum):
     ERROR = 0
     SUCCESS = 1
@@ -26,7 +28,7 @@ class KuroCommand():
             return (STX + '**'+ self.cmd + self.params + ETX).encode('utf8')
     
     def process_response(self, response_str):
-        logging.debug("kurocommand response: " + response_str)
+        _LOGGER.debug("kurocommand response: " + response_str)
         if "ERR" in response_str:
             self.response_type = ResponseType.ERROR
         elif "XXX" in response_str:
@@ -57,7 +59,7 @@ class ParameterCommand(KuroCommand):
             self.response = response_str[idx:idx + 3]
         else:
             self.response = None
-        logging.debug("response" + str(self.response))
+        _LOGGER.debug("response" + str(self.response))
 
 
 class OsdState(Enum):

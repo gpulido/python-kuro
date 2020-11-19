@@ -7,9 +7,9 @@ import logging
 import threading
 from threading import Thread
 
-from .protocol import *
+from protocol import *
 
-
+_LOGGER = logging.getLogger(__name__)
 class Gateway():   
 
     def __init__(self, port, baudrate = 9600, refresh_time = 10):
@@ -73,7 +73,7 @@ class Gateway():
                 self.ser.rtscts = False
                 self.ser.dsrdtr = False
                 self.ser.open()
-                logging.debug("Opened serial port")
+                _LOGGER.debug("Opened serial port")
             else:
                 self.ser = serial.Serial(self.port, 
                                 self.baudrate, 
@@ -88,7 +88,7 @@ class Gateway():
 
 
         except Exception as e:            
-            logging.error ('error open serial port: ' + str(e))
+            _LOGGER.error ('error open serial port: ' + str(e))
             #exit()
 
             
@@ -109,7 +109,7 @@ class Gateway():
             sucessufully
             ErrorResponse -- if the gateway returns an error
         """
-        logging.debug('Gateway writting: ' + str(commandstr))
+        _LOGGER.debug('Gateway writting: ' + str(commandstr))
 
         try:
             with self.lock:
@@ -122,7 +122,7 @@ class Gateway():
                 while True:
                     response = self.ser.readall()
                     response_str += str(response.decode())                    
-                    logging.debug('read data: ' + response_str)  
+                    _LOGGER.debug('read data: ' + response_str)  
                     if (response.decode()== ''):
                         break
                     #     data_str = ""
@@ -132,7 +132,7 @@ class Gateway():
                         #     logging.debug(data_str)
 
         except Exception as e1:
-            logging.exception ("error communicating...: " + str(e1))
+            _LOGGER.exception ("error communicating...: " + str(e1))
         
         return response_str
     

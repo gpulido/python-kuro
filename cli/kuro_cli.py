@@ -33,7 +33,7 @@ def action(args):
         print(gat.get_power_status())
 
 def executeCommand(args):
-    gat = kuro.Gateway(args.port, configure=True)
+    gat = kuro.Gateway(args.port)
     #gat.init_read_from_serial().join()
     gat.executeCmd(args.command, args.parameter)
     
