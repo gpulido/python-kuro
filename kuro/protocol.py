@@ -15,6 +15,7 @@ class KuroCommand():
     def __init__(self, cmd, params = None):
         self.cmd = cmd
         self.params = params
+        self.response_type = ResponseType.NOT_PROCESSED
     
     def serialize(self):
         if self.params == None:
@@ -23,13 +24,19 @@ class KuroCommand():
             return (STX + '**'+ self.cmd + self.params + ETX).encode('utf8')
     
     def process_response(self, response_str):
-        logging.debug("kurocommand response" + response_str)
+        logging.debug("kurocommand response: " + response_str)
         if "ERR" in response_str:
             self.response_type = ResponseType.ERROR
         elif "XXX" in response_str:
             self.response_type = ResponseType.SUCCESS
         else:
             self.response_type = ResponseType.NOT_PROCESSED
+            
+    
+    def execute(self, gat):
+        response = gat.executeCommand(self.serialize())
+        self.process_response(response)
+        return self.response_type
 
 
 class ParameterCommand(KuroCommand):

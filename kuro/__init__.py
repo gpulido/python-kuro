@@ -13,7 +13,7 @@ from kuro.protocol import *
 
 class Gateway():   
 
-    def __init__(self, port, baudrate = 9600, refresh_time = 10):
+    def __init__(self, port, baudrate = 9600, refresh_time = 10, configure = False):
         """                
         Arguments:
             port {String} -- Serial port string as it is used in pyserial
@@ -28,6 +28,9 @@ class Gateway():
         self.serial_lock = threading.Lock()
         self.status = 'off'
         self.refresh_time = refresh_time
+        self.configure = configure
+        if configure:
+            self.configserial()
         
     def init_refresh(self):
         self.refresh = True
@@ -45,7 +48,7 @@ class Gateway():
 
     def read_from_serial(self):
         self.configserial()
-        self.init_refresh()
+        #self.init_refresh()
         while (self.ser.isOpen()):
             data_str = ""
             while (self.ser.inWaiting() > 0):
@@ -94,7 +97,7 @@ class Gateway():
             #exit()
 
             
-    def executeCommand(self, command):
+    def executeCommand(self, commandstr):
         """[summary]
         Execute the given command using the serial port.
         It opens a communication to the serial port each time a
@@ -111,84 +114,101 @@ class Gateway():
             sucessufully
             ErrorResponse -- if the gateway returns an error
         """
-        commandstr = command.serialize()
         logging.debug('Gateway writting: ' + str(commandstr))
 
         try:
-            if self.ser.isOpen():
-                self.ser.write(commandstr)
+            if not self.ser.isOpen():
+                self.configserial()
+            self.ser.write(commandstr)
+            if self.configure:
+                time.sleep(0.5)
+                response_str = "" 
+                while True:
+                    response = self.ser.readall()
+                    response_str += str(response.decode())
+                    #print(response_str)
+                    logging.debug('read data: ' + response_str)  
+                    if (response.decode()== ''):
+                        break
+                    #     data_str = ""
+                    # while (self.ser.inWaiting() > 0):
+                    #     data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
+                    # if not data_str == "":
+                    #     logging.debug(data_str)
+
         except Exception as e1:
             logging.exception ("error communicating...: " + str(e1))
         
-        return None
+        return response_str
     
-    def executeCmd(self, cmd, param):
+    def executeCmd(self, cmd, param = None):
         command = KuroCommand(cmd, param)
-        self.executeCommand(command)
+        return command.execute(self)
 
     def set_volume(self, volume):
         #volume 0..1
         command = VolCommand(volume)
-        self.executeCommand(command)
-
+        command.execute(self)
+        
     def turn_on(self):
         with self.lock:
             command = TurnOnCommand()
-            self.executeCommand(command)
+            command.execute(self)
 
     def turn_off(self):
         with self.lock:
             command = TurnOffCommand()
-            self.executeCommand(command)
+            command.execute(self)
 
     def set_input(self, input):
         with self.lock:
             command = InputCommand(input)
-            self.executeCommand(command)
+            command.execute(self)
 
     def volume_up(self):
         command = VolCommand("UP1")
-        self.executeCommand(command)
+        command.execute(self)
     
     def volume_down(self):
         command = VolCommand("DW1")
-        self.executeCommand(command)
+        command.execute(self)
     
     def volume_mute(self, mute):
         if mute:
             command = MutedCommand(MutedState.ON)
         else:
             command = MutedCommand(MutedState.OFF)
-        self.executeCommand(command)
+        command.execute(self)
     
     def video_mute(self, mute):
         if mute:
             command = PictureOffCommand(PictureOffStatus.ON)
         else:
             command = PictureOffCommand(PictureOffStatus.OFF)
-        self.executeCommand(command)
+        command.execute(self)
     
     def osd_state_on(self):
-        osdCommand = OsdCommand(OsdState.ON)
-        self.executeCommand(osdCommand)
+        command = OsdCommand(OsdState.ON)
+        command.execute(self)
     
     def osd_state_off(self):
-        osdCommand = OsdCommand(OsdState.OFF)
-        self.executeCommand(osdCommand)
+        command = OsdCommand(OsdState.OFF)
+        command.execute(self)
 
     def get_volume_info(self):
-        self.executeCommand(OsdCommand(OsdState.OFF))
+        OsdCommand(OsdState.OFF).execute(self)
         command = VolCommand()
-        self.executeCommand(command)
+        command.execute(self)
         command2 = MutedCommand()
-        self.executeCommand(command2)
-        self.executeCommand(OsdCommand(OsdState.ON))
+        command2.execute(self)
+        OsdCommand(OsdState.ON).execute(self)
         return {'volume' : command.volume if hasattr(command, "volume") else None, 
                 'mute' : command2.is_muted if hasattr(command2,"is_muted") else None, 
                 'minVolume' : 0, 
                 'maxVolume' : 60}
         
     def get_power_status(self):
+        self.refresh_power_status()
         return self.status
     
     def set_power_status(self, value):
@@ -196,33 +216,33 @@ class Gateway():
             self.status = value
 
     def refresh_power_status(self):
-        while self.refresh:
-            with self.serial_lock:
-                # self.configserial()
-                command = PictureOffCommand()
-                self.executeCommand(command)
-                # self.ser.close()
-                # if command.response_type == ResponseType.SUCCESS:
-                #     self.set_power_status('off')
-                # elif command.response_type != ResponseType.ERROR:
-                #     self.set_power_status('on')
-                
-            time.sleep(self.refresh_time)
+        #while self.refresh:
+        with self.serial_lock:
+            # self.configserial()
+            response_type = self.executeCmd("ACL")
+            if response_type == ResponseType.SUCCESS:
+                self.set_power_status('on')
+            elif response_type != ResponseType.ERROR or response_type == ResponseType.NOT_PROCESSED:
+                self.set_power_status('off')
+            
+            #time.sleep(self.refresh_time)
     
     def get_input_list(self):
         return { member.describe(): member for member in InputType}
 
 
     def get_status(self):
-        
-        self.executeCommand(OsdCommand(OsdState.OFF))
+        #command = KuroCommand("ACL")
+        #self.executeCommand(command)
+
+        OsdCommand(OsdState.OFF).execute(self)
         inputCommand = InputCommand()
-        self.executeCommand(inputCommand)
+        inputCommand.execute(self)
         avsCommand = AVSCommand()
-        self.executeCommand(avsCommand)
+        avsCommand.execute(self)
         screenModecommand = ScreenModeCommand()
-        self.executeCommand(screenModecommand)
-        self.executeCommand(OsdCommand(OsdState.ON))
+        screenModecommand.execute(self)
+        OsdCommand(OsdState.ON).execute(self)
         
         return {'input' : inputCommand.input_type if hasattr(inputCommand, "input_type") else None,
                 'avs' :  avsCommand.avsType if hasattr(avsCommand, "avsType") else None,
@@ -237,10 +257,13 @@ if __name__ == '__main__':
     consoleHandler.setFormatter(logFormatter)
     rootLogger.addHandler(consoleHandler)
     rootLogger.setLevel(logging.DEBUG)
-    gat = Gateway('rfc2217://192.168.1.20:7000')
+    gat = Gateway('rfc2217://192.168.1.20:7000', configure=True)
     content_mapping = gat.get_input_list()
-    source_list = [key for key in content_mapping]
-    print(source_list)
+    #source_list = [key for key in content_mapping]
+    #gat.turn_on()
+    print(gat.get_power_status())
+    #print(gat.get_status())
+    #print(source_list)
     # for key in content_mapping:
     #     source_list.append(key)
     #gat.init_read_from_serial().join()
