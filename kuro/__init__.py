@@ -7,30 +7,26 @@ import logging
 import threading
 from threading import Thread
 
-from kuro.protocol import *
+from .protocol import *
 
 
 
 class Gateway():   
 
-    def __init__(self, port, baudrate = 9600, refresh_time = 10, configure = False):
+    def __init__(self, port, baudrate = 9600, refresh_time = 10):
         """                
         Arguments:
             port {String} -- Serial port string as it is used in pyserial
         
         Keyword Arguments:
-            discover {bool} -- True if the gateway should try to discover 
-                               the devices on init (default: {True})
+
         """
         self.port = port
         self.baudrate = baudrate
-        self.lock = threading.Lock()
-        self.serial_lock = threading.Lock()
+        self.lock = threading.Lock()        
         self.status = 'off'
-        self.refresh_time = refresh_time
-        self.configure = configure
-        if configure:
-            self.configserial()
+        self.ser = None
+        self.refresh_time = refresh_time                
         
     def init_refresh(self):
         self.refresh = True
@@ -41,30 +37,30 @@ class Gateway():
     def stop_refresh(self):
         self.refresh = False
 
-    def init_read_from_serial(self):
-        self.serial_read_thread = Thread(target = self.read_from_serial)
-        self.serial_read_thread.start()
-        return self.serial_read_thread
+    # def init_read_from_serial(self):
+    #     self.serial_read_thread = Thread(target = self.read_from_serial)
+    #     self.serial_read_thread.start()
+    #     return self.serial_read_thread
 
-    def read_from_serial(self):
-        self.configserial()
-        #self.init_refresh()
-        while (self.ser.isOpen()):
-            data_str = ""
-            while (self.ser.inWaiting() > 0):
-                data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
-            if not data_str == "":
-                logging.debug(data_str)
-                if "X" in data_str:
-                    self.status = "off"
-                else:
-                    self.status = "on"
-                logging.debug(self.status)
-        logging.debug("Serial closed") 
+    # def read_from_serial(self):
+    #     self.configserial()
+    #     #self.init_refresh()
+    #     while (self.ser.isOpen()):
+    #         data_str = ""
+    #         while (self.ser.inWaiting() > 0):
+    #             data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
+    #         if not data_str == "":
+    #             logging.debug(data_str)
+    #             if "X" in data_str:
+    #                 self.status = "off"
+    #             else:
+    #                 self.status = "on"
+    #             logging.debug(self.status)
+    #     logging.debug("Serial closed") 
             
     def configserial(self):
         """
-        Configure the serial port
+        Configure and open the serial port
         """
         try:
             if '://' in self.port:
@@ -117,24 +113,24 @@ class Gateway():
         logging.debug('Gateway writting: ' + str(commandstr))
 
         try:
-            if not self.ser.isOpen():
-                self.configserial()
-            self.ser.write(commandstr)
-            if self.configure:
+            with self.lock:
+                if not self.ser or not self.ser.isOpen():
+                    self.configserial()
+                
+                self.ser.write(commandstr)               
                 time.sleep(0.5)
                 response_str = "" 
                 while True:
                     response = self.ser.readall()
-                    response_str += str(response.decode())
-                    #print(response_str)
+                    response_str += str(response.decode())                    
                     logging.debug('read data: ' + response_str)  
                     if (response.decode()== ''):
                         break
                     #     data_str = ""
-                    # while (self.ser.inWaiting() > 0):
-                    #     data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
-                    # if not data_str == "":
-                    #     logging.debug(data_str)
+                        # while (self.ser.inWaiting() > 0):
+                        #     data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
+                        # if not data_str == "":
+                        #     logging.debug(data_str)
 
         except Exception as e1:
             logging.exception ("error communicating...: " + str(e1))
@@ -142,28 +138,25 @@ class Gateway():
         return response_str
     
     def executeCmd(self, cmd, param = None):
-        command = KuroCommand(cmd, param)
-        return command.execute(self)
+        command = KuroCommand(cmd, param, self, True)
+        return command.response_type
 
     def set_volume(self, volume):
         #volume 0..1
         command = VolCommand(volume)
         command.execute(self)
         
-    def turn_on(self):
-        with self.lock:
-            command = TurnOnCommand()
-            command.execute(self)
+    def turn_on(self):        
+        command = TurnOnCommand()
+        command.execute(self)
 
-    def turn_off(self):
-        with self.lock:
-            command = TurnOffCommand()
-            command.execute(self)
+    def turn_off(self):        
+        command = TurnOffCommand()
+        command.execute(self)
 
-    def set_input(self, input):
-        with self.lock:
-            command = InputCommand(input)
-            command.execute(self)
+    def set_input(self, input):        
+        command = InputCommand(input)
+        command.execute(self)
 
     def volume_up(self):
         command = VolCommand("UP1")
@@ -207,8 +200,7 @@ class Gateway():
                 'minVolume' : 0, 
                 'maxVolume' : 60}
         
-    def get_power_status(self):
-        self.refresh_power_status()
+    def get_power_status(self):        
         return self.status
     
     def set_power_status(self, value):
@@ -216,16 +208,14 @@ class Gateway():
             self.status = value
 
     def refresh_power_status(self):
-        #while self.refresh:
-        with self.serial_lock:
-            # self.configserial()
+        while self.refresh:                        
             response_type = self.executeCmd("ACL")
             if response_type == ResponseType.SUCCESS:
                 self.set_power_status('on')
             elif response_type != ResponseType.ERROR or response_type == ResponseType.NOT_PROCESSED:
                 self.set_power_status('off')
             
-            #time.sleep(self.refresh_time)
+            time.sleep(self.refresh_time)
     
     def get_input_list(self):
         return { member.describe(): member for member in InputType}
@@ -257,8 +247,10 @@ if __name__ == '__main__':
     consoleHandler.setFormatter(logFormatter)
     rootLogger.addHandler(consoleHandler)
     rootLogger.setLevel(logging.DEBUG)
-    gat = Gateway('rfc2217://192.168.1.20:7000', configure=True)
+    gat = Gateway('rfc2217://192.168.1.20:7000')
+    gat.init_refresh()
     content_mapping = gat.get_input_list()
+
     #source_list = [key for key in content_mapping]
     #gat.turn_on()
     print(gat.get_power_status())

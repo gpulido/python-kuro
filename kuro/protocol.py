@@ -12,10 +12,12 @@ class ResponseType(Enum):
 
 class KuroCommand():
 
-    def __init__(self, cmd, params = None):
+    def __init__(self, cmd, params = None, gat = None, execute = False):
         self.cmd = cmd
         self.params = params
         self.response_type = ResponseType.NOT_PROCESSED
+        if gat and execute:
+            self.execute(gat)
     
     def serialize(self):
         if self.params == None:
@@ -33,7 +35,7 @@ class KuroCommand():
             self.response_type = ResponseType.NOT_PROCESSED
             
     
-    def execute(self, gat):
+    def execute(self, gat):        
         response = gat.executeCommand(self.serialize())
         self.process_response(response)
         return self.response_type
