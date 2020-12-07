@@ -247,6 +247,9 @@ class ScreenMode(Enum):
     #CINEMA_14_9= "08"
     AUTO = "11"
     WIDE2 = "12"
+    
+    def describe(self):
+        return str(self.name).replace( "_"," ").title()
 
 class ScreenModeCommand(ParameterCommand):
 
