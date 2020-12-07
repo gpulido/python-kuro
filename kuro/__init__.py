@@ -226,6 +226,9 @@ class Gateway():
     def get_input_list(self):
         return {member.describe(): member for member in InputType}
 
+    def get_screen_mode_list(self):
+        return {member.describe(): member for member in ScreenMode}
+
     def get_status(self):
         #command = KuroCommand("ACL")
         # self.executeCommand(command)
