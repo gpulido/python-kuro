@@ -38,27 +38,6 @@ class Gateway():
     def stop_refresh(self):
         self.refresh = False
 
-    # def init_read_from_serial(self):
-    #     self.serial_read_thread = Thread(target = self.read_from_serial)
-    #     self.serial_read_thread.start()
-    #     return self.serial_read_thread
-
-    # def read_from_serial(self):
-    #     self.configserial()
-    #     #self.init_refresh()
-    #     while (self.ser.isOpen()):
-    #         data_str = ""
-    #         while (self.ser.inWaiting() > 0):
-    #             data_str += self.ser.readline(self.ser.inWaiting()).decode('ascii') #read the bytes and convert from binary array to ASCII
-    #         if not data_str == "":
-    #             logging.debug(data_str)
-    #             if "X" in data_str:
-    #                 self.status = "off"
-    #             else:
-    #                 self.status = "on"
-    #             logging.debug(self.status)
-    #     logging.debug("Serial closed")
-
     def configserial(self):
         """
         Configure and open the serial port
@@ -260,11 +239,4 @@ if __name__ == '__main__':
     gat.init_refresh()
     content_mapping = gat.get_input_list()
 
-    #source_list = [key for key in content_mapping]
-    # gat.turn_on()
     print(gat.get_power_status())
-    # print(gat.get_status())
-    # print(source_list)
-    # for key in content_mapping:
-    #     source_list.append(key)
-    # gat.init_read_from_serial().join()

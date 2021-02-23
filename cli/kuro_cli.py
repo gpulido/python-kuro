@@ -7,7 +7,6 @@ import logging
 
 def action(args):
     gat = kuro.Gateway(args.port, configure = True)
-    #gat.init_read_from_serial().join()
 
     if args.command == 'on':
         gat.turn_on()
@@ -34,7 +33,6 @@ def action(args):
 
 def executeCommand(args):
     gat = kuro.Gateway(args.port)
-    #gat.init_read_from_serial().join()
     gat.executeCmd(args.command, args.parameter)
     
 
