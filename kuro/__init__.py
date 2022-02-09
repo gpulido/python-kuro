@@ -94,8 +94,13 @@ class Gateway():
                 response_str = ""
                 if not self.ser or not self.ser.isOpen():
                     self.configserial()
-                self.ser.flushInput()
-                self.ser.flushOutput()
+                try:
+                    self.ser.flushInput()
+                    self.ser.flushOutput()             
+                except Exception as e1:
+                    self.ser.close()
+                    self.configserial()
+                
                 self.ser.write(commandstr)
                 time.sleep(0.3)
                 response_str = ""
